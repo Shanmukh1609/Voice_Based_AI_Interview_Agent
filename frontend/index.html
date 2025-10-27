@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice AI Interview Agent</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Use Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Link to external stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-100 text-gray-900 min-h-screen flex items-center justify-center p-4">
+    
+    <div class="bg-white rounded-2xl shadow-2xl p-6 md:p-10 w-full max-w-2xl">
+        <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">
+            Voice AI Interview Agent
+        </h1>
+
+        <!-- ==== 1. SETUP SCREEN ==== -->
+        <div id="setup-screen">
+            <p class="text-gray-600 mb-6 text-center">
+                Upload the candidate's resume and paste the job details to begin.
+            </p>
+            <div class="space-y-4">
+                
+                <!-- Resume File Upload -->
+                <div>
+                    <label for="resume-file" class="block text-sm font-medium text-gray-700 mb-1">
+                        Candidate Resume (PDF only)
+                    </label>
+                    <input id="resume-file" type="file" accept=".pdf" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border rounded-lg p-2">
+                    <!-- Hidden field to store parsed resume text -->
+                    <input type="hidden" id="resume-text">
+                </div>
+                
+                <!-- Job Description Input -->
+                <div>
+                    <label for="job-desc" class="block text-sm font-medium text-gray-700 mb-1">
+                        Job Description
+                    </label>
+                    <textarea id="job-desc" rows="4" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500" placeholder="Paste the job description..."></textarea>
+                </div>
+
+                <!-- Company Facts (RAG Simulation) -->
+                <div>
+                    <label for="company-facts" class="block text-sm font-medium text-gray-700 mb-1">
+                        Company Facts
+                    </label>
+                    <textarea id="company-facts" rows="3" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500" placeholder="e.g., 'Our company values innovation and collaboration.'"></textarea>
+                </div>
+
+                <!-- HR Email -->
+                <div>
+                    <label for="hr-email" class="block text-sm font-medium text-gray-700 mb-1">
+                        HR Email for Report
+                    </label>
+                    <input id="hr-email" type="email" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500" placeholder="hr.manager@example.com">
+                </div>
+
+                <!-- Start Button -->
+                <button id="start-interview-btn" class="w-full bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 ease-in-out transform hover:-translate-y-0.5">
+                    Start Interview
+                </button>
+            </div>
+        </div>
+
+        <!-- ==== 2. INTERVIEW SCREEN ==== -->
+        <div id="interview-screen" class="hidden">
+            <div class="text-center p-4">
+                <div id="status-message" class="text-lg font-medium text-gray-700 mb-4 h-16">
+                    Initializing...
+                </div>
+                
+                <!-- Listening Indicator -->
+                <div id="listening-indicator" class="listening-indicator h-10 mb-4 hidden">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+
+                <div class="bg-gray-50 p-6 rounded-lg shadow-inner min-h-[200px]">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">AI Question:</h3>
+                    <p id="question-text" class="text-xl font-medium text-gray-900 mb-6"></p>
+
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Your Answer:</h3>
+                    <p id="answer-text" class="text-lg text-gray-600 italic min-h-[50px]"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==== 3. REPORT SCREEN ==== -->
+        <div id="report-screen" class="hidden">
+            <h2 class="text-2xl font-bold text-center text-green-600 mb-4">Interview Complete!</h2>
+            <p class="text-gray-600 mb-6 text-center" id="report-status">
+                Here is the AI-generated evaluation. Sending report to HR...
+            </p>
+            <div id="report-content" class="bg-gray-50 p-6 rounded-lg shadow-inner whitespace-pre-wrap max-h-[500px] overflow-y-auto">
+                <p>Generating report...</p>
+            </div>
+            <button id="restart-btn" class="mt-6 w-full bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-gray-700 transition duration-300">
+                Start New Interview
+            </button>
+        </div>
+
+        <!-- ==== MODAL for Errors/Messages ==== -->
+        <div id="message-modal" class="modal-backdrop hidden">
+            <div class="modal-content">
+                <h3 id="modal-title" class="text-lg font-bold mb-4">Message</h3>
+                <p id="modal-message" class="text-gray-700 mb-6"></p>
+                <button id="modal-close-btn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-300">
+                    OK
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Main JavaScript module -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
