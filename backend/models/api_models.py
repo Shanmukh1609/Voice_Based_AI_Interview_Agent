@@ -9,8 +9,6 @@ class TranscriptItem(BaseModel):
 # --- /generate-questions ---
 class QuestionRequest(BaseModel):
     resume_text: str
-    job_description: str
-    company_facts: str
 
 class QuestionResponse(BaseModel):
     questions: List[str]
@@ -24,7 +22,6 @@ class EvaluateResponse(BaseModel):
 
 # --- /send-email ---
 class EmailRequest(BaseModel):
-    hr_email: EmailStr
     candidate_resume: str
     evaluation_report: str
 

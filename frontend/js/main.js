@@ -1,7 +1,7 @@
 import {
     setupScreen, reportScreen, startInterviewBtn, restartBtn,
-    resumeFile, resumeText, jobDesc, companyFacts, hrEmail,
-    questionText, answerText, reportContent, reportStatus,
+    resumeFile, resumeText,
+    questionText, answerText, reportStatus,
     showModal, updateStatus, switchScreen
 } from './ui.js';
 
@@ -29,24 +29,11 @@ async function handleStartInterview() {
 
     // === 1. VALIDATE INPUTS ===
     const file = resumeFile.files[0];
-    const jobDescription = jobDesc.value.trim();
-    const companyFactsText = companyFacts.value.trim();
-    const hrEmailAddress = hrEmail.value.trim();
+    
+    // Removed validation for jobDescription, companyFactsText, and hrEmailAddress
 
     if (!file) {
         showModal("Missing Information", "Please upload a resume PDF.");
-        startInterviewBtn.disabled = false;
-        startInterviewBtn.textContent = 'Start Interview';
-        return;
-    }
-    if (!jobDescription) {
-        showModal("Missing Information", "Please provide a job description.");
-        startInterviewBtn.disabled = false;
-        startInterviewBtn.textContent = 'Start Interview';
-        return;
-    }
-    if (!hrEmailAddress) {
-        showModal("Missing Information", "Please provide an HR email to send the report.");
         startInterviewBtn.disabled = false;
         startInterviewBtn.textContent = 'Start Interview';
         return;
@@ -66,10 +53,9 @@ async function handleStartInterview() {
         
         // === 4. GENERATE QUESTIONS ===
         startInterviewBtn.textContent = 'Generating Questions...';
+        // Call getQuestions with only the resume text
         const questionsResponse = await getQuestions(
-            resumeText.value,
-            jobDescription,
-            companyFactsText
+            resumeText.value
         );
         
         questions = questionsResponse.questions;
@@ -143,42 +129,33 @@ function handleSpeechEnd(answer) {
  */
 async function finishInterview() {
     updateStatus("Interview complete! Evaluating your answers...");
-    switchScreen('report'); // Show the report screen (with loading message)
-    reportStatus.textContent = "Evaluating performance...";
+    switchScreen('report'); // Show the report screen
+    reportStatus.textContent = "Evaluating performance and sending report to the hiring team...";
 
     try {
         // === 6. GET EVALUATION ===
         const evalResponse = await evaluateInterview(transcript);
         finalEvaluation = evalResponse.evaluation; // Store for email
         
-        // Render the report
-        let htmlReport = finalEvaluation
-            .replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-900">$1</strong>')
-            .replace(/^- (.*)/gm, '<li class="ml-4">$1</li>')
-            .replace(/(\n<li>)/g, '<li>')
-            .replace(/<\/li>\n/g, '</li>');
-        
-        htmlReport = htmlReport.replace(/(<li>.*<\/li>)/gs, '<ul class="list-disc list-outside mb-4">$1</ul>');
-        htmlReport = htmlReport.split('\n').map(p => {
-            if (p.startsWith('<ul') || p.startsWith('<li') || p.startsWith('<strong')) return p;
-            return `<p class="mb-4">${p}</p>`;
-        }).join('');
-
-        reportContent.innerHTML = htmlReport;
+        // --- Report rendering is REMOVED ---
+        // We no longer display the report content in the UI.
         
         // === 7. SEND EMAIL ===
-        reportStatus.textContent = `Evaluation complete! Sending report to ${hrEmail.value}...`;
+        reportStatus.textContent = `Evaluation complete! Sending report to the hiring team...`;
+        
+        // Call sendEmail without hr_email argument
         await sendEmail(
-            hrEmail.value,
             resumeText.value,
             finalEvaluation
         );
-        reportStatus.textContent = `Evaluation complete! Report sent to ${hrEmail.value}.`;
+        
+        // Update status to final confirmation
+        reportStatus.textContent = `Your evaluation has been sent to the hiring team. Thank you!`;
 
     } catch (error) {
         console.error("Failed to generate or send report:", error);
-        reportContent.innerHTML = `<p class="text-red-500">Sorry, an error occurred while generating the report: ${error.message}</p>`;
-        reportStatus.textContent = "An error occurred during the final report step.";
+        // Display a more user-friendly error on the report screen
+        reportStatus.textContent = "An error occurred while sending your report. Please contact the administrator.";
     }
 }
 
@@ -195,11 +172,6 @@ restartBtn.addEventListener('click', () => {
     // Clear form fields
     resumeFile.value = '';
     resumeText.value = '';
-    jobDesc.value = '';
-    companyFacts.value = '';
-    hrEmail.value = '';
     
-    // Reset report screen
-    reportContent.innerHTML = '<p>Generating report...</p>';
-    reportStatus.textContent = "Here is the AI-generated evaluation. Sending report to HR...";
+    reportStatus.textContent = "Generating your evaluation...";
 });

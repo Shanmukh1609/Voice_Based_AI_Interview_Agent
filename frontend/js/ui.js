@@ -9,9 +9,6 @@ export const restartBtn = document.getElementById('restart-btn');
 // Setup Screen Inputs
 export const resumeFile = document.getElementById('resume-file');
 export const resumeText = document.getElementById('resume-text'); // Hidden input
-export const jobDesc = document.getElementById('job-desc');
-export const companyFacts = document.getElementById('company-facts');
-export const hrEmail = document.getElementById('hr-email');
 
 // Interview Screen Elements
 export const statusMessage = document.getElementById('status-message');
@@ -20,8 +17,8 @@ export const questionText = document.getElementById('question-text');
 export const answerText = document.getElementById('answer-text');
 
 // Report Screen Elements
-export const reportContent = document.getElementById('report-content');
 export const reportStatus = document.getElementById('report-status');
+// Removed reportContent
 
 // Modal Elements
 export const messageModal = document.getElementById('message-modal');

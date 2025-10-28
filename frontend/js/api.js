@@ -32,15 +32,12 @@ export async function uploadResume(file) {
 /**
  * Calls the backend to generate questions.
  * @param {string} resume_text - Parsed resume text.
- * @param {string} job_description - The job description.
- * @param {string} company_facts - Company facts for RAG.
  * @returns {Promise<object>} - The response containing the list of questions.
  */
-export async function getQuestions(resume_text, job_description, company_facts) {
+export async function getQuestions(resume_text) {
+    // Payload no longer includes job_description or company_facts
     const payload = {
         resume_text,
-        job_description,
-        company_facts,
     };
 
     const response = await fetch(`${BACKEND_URL}/generate-questions`, {
@@ -69,15 +66,13 @@ export async function evaluateInterview(transcript) {
 
 /**
  * Calls the backend to send the evaluation email.
- * @param {string} hr_email - The email address to send the report to.
  * @param {string} candidate_resume - The parsed resume text.
  * @param {string} evaluation_report - The final evaluation report.
- *File Generation: Follow the file generation workflow for anything longer than 3 lines of text, including:
  * @returns {Promise<object>} - The response confirming email status.
  */
-export async function sendEmail(hr_email, candidate_resume, evaluation_report) {
+export async function sendEmail(candidate_resume, evaluation_report) {
+    // Payload no longer includes hr_email
     const payload = {
-        hr_email,
         candidate_resume,
         evaluation_report,
     };

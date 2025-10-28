@@ -1,7 +1,7 @@
 import os
 import google.generativeai as genai
 from google.generativeai.types import GenerationConfig
-from typing import List
+from typing import List, Tuple, Optional
 
 # Configure the Gemini API key
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
@@ -16,9 +16,15 @@ safety_settings = [
 ]
 
 # --- Model Initialization ---
-model = genai.GenerativeModel(
+# Text generation model
+text_model = genai.GenerativeModel(
     model_name="gemini-2.5-flash-preview-09-2025",
     safety_settings=safety_settings
+)
+
+# NEW: TTS generation model
+tts_model = genai.GenerativeModel(
+    model_name="gemini-2.5-flash-preview-tts"
 )
 
 async def generate_questions_from_text(resume_text: str, job_description: str, rag_context: str) -> List[str]:
@@ -56,7 +62,7 @@ Example:
 """
 
     try:
-        response = await model.generate_content_async(
+        response = await text_model.generate_content_async(
             [system_prompt, user_prompt],
             generation_config=GenerationConfig(temperature=0.7)
         )
@@ -114,7 +120,7 @@ Please provide your evaluation now.
 """
     
     try:
-        response = await model.generate_content_async(
+        response = await text_model.generate_content_async(
             [system_prompt, user_prompt],
             generation_config=GenerationConfig(temperature=0.5)
         )
@@ -123,3 +129,48 @@ Please provide your evaluation now.
     except Exception as e:
         print(f"Error in Gemini evaluation: {e}")
         return f"Error: Could not evaluate transcript. {e}"
+
+# --- NEW: TTS Function ---
+async def generate_tts_audio(text_to_speak: str, voice: str = "Kore") -> Tuple[Optional[str], Optional[str]]:
+    """
+    Generates TTS audio using the Gemini API.
+    Returns (base64_audio_data, mime_type)
+    """
+    
+    prompt = f"Say in a professional, clear, and neutral tone: {text_to_speak}"
+    
+    payload = {
+        "contents": [{
+            "parts": [{ "text": prompt }]
+        }],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {
+                "voiceConfig": {
+                    "prebuiltVoiceConfig": { "voiceName": voice }
+                }
+            }
+        },
+        "model": "gemini-2.5-flash-preview-tts"
+    }
+
+    try:
+        # Note: The Python client uses generate_content, not a direct fetch
+        response = await tts_model.generate_content_async(
+            contents=payload["contents"],
+            generation_config=payload["generationConfig"]
+        )
+        
+        part = response.candidates[0].content.parts[0]
+        audio_data = part.inline_data.data
+        mime_type = part.inline_data.mime_type
+
+        if audio_data and mime_type.startswith("audio/"):
+            return audio_data, mime_type
+        else:
+            raise ValueError("Invalid audio response structure from API.")
+            
+    except Exception as e:
+        print(f"Error in Gemini TTS generation: {e}")
+        return None, None
+

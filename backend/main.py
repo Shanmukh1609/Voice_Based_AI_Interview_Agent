@@ -12,6 +12,8 @@ from models.api_models import (
     EmailRequest, EmailResponse
 )
 from utils.resume_parser import parse_resume_pdf
+# Import the file reader
+from utils.file_reader import read_text_file 
 from services.rag_service import create_rag_chain, query_rag_chain
 from services.gemini_service import generate_questions_from_text, evaluate_transcript
 from utils.send_email import send_evaluation_email
@@ -25,7 +27,6 @@ app = FastAPI(
 )
 
 # --- CORS Middleware ---
-# Allows the frontend (running on a different port) to communicate with this backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], # Allow all origins (for local development)
@@ -35,21 +36,42 @@ app.add_middleware(
 )
 
 # --- State ---
-# In a production app, you'd use a database (e.g., Firestore) to store this
-# For this example, we'll hold the RAG chain in memory
+# We now load JD, company facts, and HR email into the app's state
 app.state.rag_chain = None
+app.state.job_description = ""
+app.state.company_facts = ""
+app.state.hr_email = ""
+
 
 # --- Endpoints ---
 
 @app.on_event("startup")
 async def startup_event():
     """
-    On startup, check for the Google API key.
-    We don't build the RAG chain here, as it's company-specific.
+    On startup, load API keys, file data, and env vars into app state.
     """
     if not os.getenv("GOOGLE_API_KEY"):
         raise RuntimeError("GOOGLE_API_KEY environment variable not set.")
-    print("Server started. GOOGLE_API_KEY loaded.")
+    
+    # Load HR Email from .env
+    app.state.hr_email = os.getenv("HR_EMAIL")
+    if not app.state.hr_email:
+        raise RuntimeError("HR_EMAIL environment variable not set.")
+        
+    # Load Job Description from file
+    # Assumes a 'data' folder in the project root
+    app.state.job_description = read_text_file("data/job_description.txt")
+    if not app.state.job_description:
+        raise RuntimeError("Could not load data/job_description.txt.")
+        
+    # Load Company Facts from file
+    app.state.company_facts = read_text_file("data/company_facts.txt")
+    if not app.state.company_facts:
+        print("Warning: Could not load data/company_facts.txt. RAG context will be empty.")
+        # This might be optional, so we don't raise an error
+        
+    print("Server started. GOOGLE_API_KEY, HR_EMAIL, and data files loaded.")
+
 
 @app.get("/")
 def read_root():
@@ -65,7 +87,6 @@ async def upload_resume(file: UploadFile = File(...)):
     
     try:
         contents = await file.read()
-        # The parse_resume_pdf function expects bytes
         resume_text = parse_resume_pdf(contents)
         if not resume_text.strip():
             raise HTTPException(status_code=400, detail="Could not extract text from PDF. The PDF might be image-based or empty.")
@@ -79,28 +100,25 @@ async def upload_resume(file: UploadFile = File(...)):
 @app.post("/generate-questions", response_model=QuestionResponse)
 async def generate_questions_endpoint(request: QuestionRequest = Body(...)):
     """
-    Generates interview questions based on resume, job description, and company facts.
-    This endpoint also builds the RAG chain for the session.
+    Generates interview questions based on resume and data loaded from server files.
     """
     try:
-        # 1. Create RAG chain from company facts
-        # This will be used to inject company-specific context into the questions
+        # 1. Create RAG chain from company facts (loaded on startup)
         print("Creating RAG chain...")
-        app.state.rag_chain = create_rag_chain(request.company_facts)
+        app.state.rag_chain = create_rag_chain(app.state.company_facts)
         
         # 2. Get RAG context (if any)
-        # We can do a quick query to see if any facts are relevant to the job
         rag_context = query_rag_chain(
             app.state.rag_chain,
-            f"Facts about our company relevant to a {request.job_description}"
+            f"Facts about our company relevant to a {app.state.job_description}"
         )
 
         # 3. Generate questions
         print("Generating questions...")
         questions = await generate_questions_from_text(
             request.resume_text,
-            request.job_description,
-            rag_context # Pass the RAG context to the question generator
+            app.state.job_description, # Use JD from app state
+            rag_context
         )
         
         return QuestionResponse(questions=questions)
@@ -116,7 +134,6 @@ async def evaluate_interview_endpoint(request: EvaluateRequest = Body(...)):
     """
     try:
         print("Evaluating transcript...")
-        # Format the transcript for the LLM
         transcript_text = "\n\n".join(
             [f"Question {i+1}: {item.question}\nAnswer {i+1}: {item.answer}" 
              for i, item in enumerate(request.transcript)]
@@ -133,13 +150,18 @@ async def evaluate_interview_endpoint(request: EvaluateRequest = Body(...)):
 @app.post("/send-email", response_model=EmailResponse)
 async def send_email_endpoint(request: EmailRequest = Body(...)):
     """
-    Sends the evaluation report to a specified HR email.
+    Sends the evaluation report to the HR email loaded from .env.
     """
     try:
-        print(f"Sending email to {request.hr_email}...")
+        # Get HR email from app state (loaded from .env)
+        hr_email = app.state.hr_email
+        if not hr_email:
+            raise HTTPException(status_code=500, detail="HR Email is not configured on the server.")
+
+        print(f"Sending email to {hr_email}...")
         
         success = send_evaluation_email(
-            recipient_email=request.hr_email,
+            recipient_email=hr_email,
             candidate_resume=request.candidate_resume,
             evaluation_report=request.evaluation_report
         )
@@ -155,10 +177,5 @@ async def send_email_endpoint(request: EmailRequest = Body(...)):
 
 # --- Run the app ---
 if __name__ == "__main__":
-    """
-    Run the server using uvicorn.
-    'main:app' refers to the 'app' instance in the 'main.py' file.
-    --reload watches for file changes and restarts the server.
-    """
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("main:app", host="127.0.0.1", port=port, reload=True)

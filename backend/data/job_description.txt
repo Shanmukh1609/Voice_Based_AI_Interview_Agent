@@ -1,0 +1,31 @@
+About the Role:
+We are seeking a passionate and motivated AI Engineer Intern to join our team and work on developing, optimizing, and deploying intelligent systems. You will collaborate with experienced data scientists, ML engineers, and software developers to build scalable AI solutions that solve real-world problems.
+
+Key Responsibilities:
+* Assist in designing, training, and evaluating machine learning and deep learning models for various use cases (e.g., NLP, computer vision, recommendation systems).
+* Work on data preprocessing, feature engineering, and model optimization for improved performance.
+* Support the deployment of AI models into production using frameworks like TensorFlow, PyTorch, or ONNX.
+* Collaborate with backend and data teams to integrate AI solutions into existing applications or APIs.
+* Conduct literature reviews and experiment with state-of-the-art techniques in AI/ML.
+* Implement and maintain automated pipelines for model training and evaluation.
+* Contribute to documentation and code reviews to ensure maintainability and reproducibility.
+
+Required Qualifications:
+* Currently pursuing a Bachelor’s or Master’s degree in Computer Science, Data Science, AI, or related field.
+* Solid understanding of machine learning concepts, data structures, and algorithms.
+* Experience with Python and libraries such as NumPy, Pandas, Scikit-learn, TensorFlow, or PyTorch.
+* Familiarity with SQL and data visualization tools (Matplotlib, Seaborn, etc.).
+* Basic understanding of MLOps tools (Docker, FastAPI, MLflow, etc.) is a plus.
+* Strong analytical, problem-solving, and communication skills.
+
+Preferred Qualifications:
+* Knowledge of natural language processing (NLP) or computer vision.
+* Experience with transformers (Hugging Face) or Generative AI models (e.g., GPT, Gemini, Llama).
+* Exposure to cloud platforms (AWS, GCP, or Azure) for AI model deployment.
+* Contributions to open-source AI/ML projects or relevant GitHub repositories.
+
+What You’ll Gain:
+* Hands-on experience building real-world AI applications.
+* Mentorship from senior AI engineers and data scientists.
+* Opportunity to work on cutting-edge technologies and research.
+* A chance to convert to a full-time AI Engineer role based on performance.

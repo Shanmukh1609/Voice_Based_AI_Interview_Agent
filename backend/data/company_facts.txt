@@ -1,0 +1,9 @@
+Mission / Values
+Here are the mission statements, values and guiding principles that seem to underpin Sarvam.ai:
+* To build “Generative AI real for Bharat” — i.e. AI that works for India, with its languages, contexts, and diversity. 
+* To enable sovereignty in AI — “Sovereign by Design” (meaning infrastructure / compute / governance within India). 
+* To make AI that is secure & safe, and capable of being deployed on‐premises, in cloud, or even edge (depending on need). 
+* To deliver affordable and scalable AI tools & models tailored for India — for enterprises, government and developers. 
+* Open / collaborative approach: engaging with academic / public-good institutions (e.g. AI4Bharat), open-source model releases under permissible licenses. 
+* Local relevance & linguistic inclusion: supporting multiple Indian languages, accents, scripts; handling multilingual and code-mixed inputs. 
+* Engineering efficiency: performance benchmarks versus global models, cost-effective inference & deployment for Indian-scale usage. 
