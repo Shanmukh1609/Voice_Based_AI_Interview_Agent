@@ -59,7 +59,6 @@ async def startup_event():
         raise RuntimeError("HR_EMAIL environment variable not set.")
         
     # Load Job Description from file
-    # Assumes a 'data' folder in the project root
     app.state.job_description = read_text_file("data/job_description.txt")
     if not app.state.job_description:
         raise RuntimeError("Could not load data/job_description.txt.")
@@ -68,7 +67,6 @@ async def startup_event():
     app.state.company_facts = read_text_file("data/company_facts.txt")
     if not app.state.company_facts:
         print("Warning: Could not load data/company_facts.txt. RAG context will be empty.")
-        # This might be optional, so we don't raise an error
         
     print("Server started. GOOGLE_API_KEY, HR_EMAIL, and data files loaded.")
 
@@ -117,7 +115,7 @@ async def generate_questions_endpoint(request: QuestionRequest = Body(...)):
         print("Generating questions...")
         questions = await generate_questions_from_text(
             request.resume_text,
-            app.state.job_description, # Use JD from app state
+            app.state.job_description,
             rag_context
         )
         
@@ -153,7 +151,6 @@ async def send_email_endpoint(request: EmailRequest = Body(...)):
     Sends the evaluation report to the HR email loaded from .env.
     """
     try:
-        # Get HR email from app state (loaded from .env)
         hr_email = app.state.hr_email
         if not hr_email:
             raise HTTPException(status_code=500, detail="HR Email is not configured on the server.")
@@ -175,7 +172,6 @@ async def send_email_endpoint(request: EmailRequest = Body(...)):
         print(f"Error sending email: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
 
-# --- Run the app ---
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("main:app", host="127.0.0.1", port=port, reload=True)
