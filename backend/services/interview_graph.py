@@ -313,15 +313,16 @@ def create_interview_graph(checkpointer=None):
     workflow.add_edge("parse_resume", "create_rag")
     workflow.add_edge("create_rag", "generate_questions")
     workflow.add_edge("generate_questions", "ask_question")
+    workflow.add_edge("evaluate", "send_email")
     workflow.add_edge("send_email", "send_candidate_notification")
     workflow.add_edge("send_candidate_notification", END)
-    # After asking question, we need to wait for external answer
-    # So ask_question goes to a "wait" state, but we'll handle this externally
+    # After asking question, we need to wait for external answer.
+    # So ask_question goes to a "wait" state, but we'll handle this externally.
     # For now, we'll make ask_question transition to END (we'll resume manually)
     # Actually, better: ask_question can conditionally go to process_answer or evaluate
     # But we control this externally by invoking process_answer with the answer
     
-    # After processing answer, check if we should continue or finish
+    # After processing answer, check if we should continue or finish.
     workflow.add_conditional_edges(
         "process_answer",
         should_continue_interview,
@@ -341,10 +342,6 @@ def create_interview_graph(checkpointer=None):
             "wait": END  # Stop here, will resume via process_answer
         }
     )
-    
-    workflow.add_edge("evaluate", "send_email")
-    workflow.add_edge("send_email", END)
-    
     # Compile graph
     return workflow.compile(
         checkpointer = checkpointer,
@@ -375,7 +372,7 @@ def create_initial_state(
         "current_question": None,
         "current_answer": None,
         "waiting_for_answer": False,
-        "follow_up_count": 2,
+        "follow_up_count": 1,
         "evaluation": None,
         "email_sent": False,
         "status": "starting",

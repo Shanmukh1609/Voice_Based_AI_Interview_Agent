@@ -283,78 +283,88 @@ async def start_interview_graph(file: UploadFile = File(...)):
         print(f"Error starting interview graph: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to start interview: {str(e)}")
 
-
 @app.post("/interview-graph/{session_id}/submit-answer")
 async def submit_answer(session_id: str, answer: str = Body(..., embed=True)):
-    """
-    Submits an answer, updates state in SQLite, and runs the graph to the next question.
-    """
     print(f"🎤 Submitting answer for session {session_id}")
     
     try:
-        # 1. [CHANGED] Re-create the graph with the global 'memory' checkpointer
         async with AsyncSqliteSaver.from_conn_string("interview_state.db") as memory:
-        # This loads the "rules" of the graph.
             graph = create_interview_graph(checkpointer=memory)
-            
-            # 2. [CHANGED] This config tells LangGraph WHICH interview to load from the DB
             config = {"configurable": {"thread_id": session_id}}
             
-            # 3. [CHANGED] Get the current state from the database
+            # 1. Get State
             snapshot = await graph.aget_state(config)
-            
             if not snapshot or not snapshot.values:
-                raise HTTPException(status_code=404, detail="Session not found in database. It may have expired.")
-                
-            current_state = snapshot.values
+                raise HTTPException(status_code=404, detail="Session not found.")
             
-            # 4. Update state in memory with the new answer
+            current_state = snapshot.values
             current_state["current_answer"] = answer
             current_state["waiting_for_answer"] = False
             
-            # 5. Process the answer (same as your logic)
+            # 2. Process Answer Node
             from services.interview_graph import process_answer_node
             current_state = await process_answer_node(current_state)
             
-            # 6. [CHANGED] Save the updated state (with answer + processing) back to the DB
+            # [SAFETY CHECK] Unwrap tuple if present
+            if isinstance(current_state, tuple):
+                current_state = current_state[0]
+
+            # 3. Save State
             await graph.aupdate_state(config, current_state, as_node="process_answer")
-            should_stop=False
-            # 7. [CHANGED] Continue graph execution
-            # We pass 'None' because the input is already in the state we just saved.
+
             final_state = current_state
+            
+            # 4. Run Graph
             if current_state.get("status") != "needs_follow_up":
                 async for state_update in graph.astream(None, config=config):
                     for node_name, node_state in state_update.items():
-                        final_state = node_state
-                        # Stop at next question or completion (same as your logic)
-                        if node_name == "ask_question" and  final_state.get("status") == "asking_question":
-                                break
+                        
+                        # --- FIX 1: IGNORE INTERNAL INTERRUPT SIGNALS ---
+                        if node_name == "__interrupt__":
+                            print("⏸️ Graph execution paused (Interrupt triggered).")
+                            continue
+                        # ------------------------------------------------
+                        
+                        # --- FIX 2: SAFER TUPLE CHECKING ---
+                        if isinstance(node_state, tuple):
+                            print(f"⚠️ Node '{node_name}' returned a TUPLE!")
+                            if len(node_state) > 0:
+                                final_state = node_state[0]
+                            else:
+                                print(f"⚠️ Tuple was empty. Keeping previous state.")
+                        else:
+                            final_state = node_state
+                        # -----------------------------------
+                        
+                        print(f"Node executed: {node_name}, status: {final_state.get('status')}")
+                        
+                        if node_name == "ask_question" and final_state.get("status") == "asking_question":
+                            print("➡️ Next question asked.")
                         elif node_name == "send_email":
                             print("💼 Interview complete. Waiting for HR decision...")
-                            # This is where the graph will now PAUSE and wait for HR
-                            should_stop = True
-                            break
-                    if should_stop:
-                        break
-            
-            # 8. [REMOVED] No need for 'session["state"] = final_state'
-            # The checkpointer saved the state automatically.
-            print(f"✅ Answer processed for session {session_id}. Current status: {final_state.get('status')}")
-            # 9. Return updated state to frontend (same as your logic)
+
+            # 5. Final Response
+            print(f"✅ Answer processed. Final Status: {final_state.get('status')}")
+
+            is_complete = final_state.get("status") in ["interview_complete", "complete", "candidate_notified"]
+
             return {
                 "status": final_state.get("status"),
                 "current_question": final_state.get("current_question"),
                 "question_index": final_state.get("current_question_index", 0),
                 "total_questions": len(final_state.get("questions", [])),
-                "interview_complete": final_state.get("status") == "interview_complete",
+                "interview_complete": is_complete,
                 "evaluation": final_state.get("evaluation"),
                 "email_sent": final_state.get("email_sent", False)
             }
         
     except Exception as e:
-        print(f"Error submitting answer: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to submit answer: {str(e)}")
-
+        print(f"❌ Error submitting answer: {e}")
+        if "GeneratorExit" in str(e):
+            pass
+        else:
+            raise HTTPException(status_code=500, detail=f"Failed to submit answer: {str(e)}")
+        
 @app.get("/interview-graph/{session_id}/state")
 async def get_interview_state(session_id: str):
     """
